@@ -19,7 +19,7 @@
               <i :class="icons[item.id]"/>
               <span>{{ item.authName }}</span>
             </template>
-              <el-menu-item :index="'/'+subItem.path" v-for="subItem in item.children" :key="subItem.id" @click="saveState('/'+subItem.path)">
+              <el-menu-item :index="'/'+subItem.path" v-for="subItem in item.children" :key="subItem.id">
                 <template slot="title">
                   <i class="el-icon-menu"/>
                   <span>{{ subItem.authName }}</span>
@@ -69,10 +69,6 @@ export default {
     toggleCollapse () {
       this.isCollapsed = !this.isCollapsed
     }
-    // saveState (activePath) {
-    //   window.sessionStorage.setItem('activePath', activePath)
-    //   this.activePath = activePath
-    // }
   }
 }
 </script>
