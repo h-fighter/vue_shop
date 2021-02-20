@@ -38,7 +38,7 @@
         </el-card>
 
         <!--添加分类的对话框-->
-        <el-dialog title="添加分类" :visible.sync="addCateDialogVisible" width="50%" @close="addCateDialogClos>
+        <el-dialog title="添加分类" :visible.sync="addCateDialogVisible" width="50%" @close="addCateDialogClosed">
             <el-form :model="addCateForm" :rules="addCateFormRules" ref="addCateFormRef" label-width="80px">
                 <el-form-item label="分类名称" prop="cat_name">
                     <el-input v-model="addCateForm.cat_name"></el-input>
