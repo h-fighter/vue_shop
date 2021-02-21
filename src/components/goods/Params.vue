@@ -1,0 +1,167 @@
+<template>
+    <div>
+        <!--    面包屑导航区-->
+        <el-breadcrumb>
+            <el-breadcrumb-item :to="{path:'/home'}">首页</el-breadcrumb-item>
+            <el-breadcrumb-item>商品管理</el-breadcrumb-item>
+            <el-breadcrumb-item>参数列表</el-breadcrumb-item>
+        </el-breadcrumb>
+        <!--卡片视图区域-->
+        <el-card>
+            <el-alert title="注意：只允许为第三级分类设置" type="warning" :closable="false" show-icon/>
+            <el-row class="cat_row">
+                <el-col>
+                    <span>选择商品分类：</span>
+                    <!--选择商品分类的级联-->
+                    <el-cascader expand-trigger="hover" :options="catelist" :props="cateProps"  v-model="selectedKeys" @change="handleChange" size="mini"></el-cascader>
+                </el-col>
+            </el-row>
+            <el-tabs v-model="activeName" @click="handleTabClick">
+                <el-tab-pane label="动态参数" name="many">
+                    <el-button size="mini" type="primary" :disabled="isBtnDisabled" @click="addParamsDialogVisible = true">添加属性</el-button>
+                    <el-table :data="manyTableData" border stripe>
+                        <el-table-column type="expand"></el-table-column>
+                        <el-table-column type="index"></el-table-column>
+                        <el-table-column label="参数名称" prop="attr_name"></el-table-column>
+                        <el-table-column label="操作">
+                            <template slot-scope="scope">
+                                <el-button type="primary" icon="el-icon-edit" size="mini">编辑</el-button>
+                                <el-button type="danger" icon="el-icon-delete" size="mini">删除</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </el-tab-pane>
+                <el-tab-pane label="静态属性" name="only">
+                    <el-button size="mini" type="primary" :disabled="isBtnDisabled" @click="addParamsDialogVisible = true">添加属性</el-button>
+                    <el-table :data="onlyTableData" border stripe>
+                        <el-table-column type="expand"></el-table-column>
+                        <el-table-column type="index"></el-table-column>
+                        <el-table-column label="属性名称" prop="attr_name"></el-table-column>
+                        <el-table-column label="操作">
+                            <template slot-scope="scope">
+                                <el-button type="primary" icon="el-icon-edit" size="mini">编辑</el-button>
+                                <el-button type="danger" icon="el-icon-delete" size="mini">删除</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </el-tab-pane>
+            </el-tabs>
+        </el-card>
+
+        <!--对话框-->
+        <el-dialog :title="titleText" :visible.sync="addParamsDialogVisible" width="50%" @close="addParamsDialogClosed">
+            <el-form :model="addParamsForm" :rules="addParamsFormRules" ref="addParamsFormRef">
+                <el-form-item :label="titleText" prop="attr_name">
+                    <el-input v-model="addParamsForm.attr_name"></el-input>
+                </el-form-item>
+            </el-form>
+            <span slot="footer" class="dialog-footer">
+                <el-button @click="addParamsDialogVisible=false">取 消</el-button>
+                <el-button type="primary" @click="addParams">确 定</el-button>
+            </span>
+        </el-dialog>
+    </div>
+</template>
+
+<script>
+export default {
+  name: 'Params',
+  data () {
+    return {
+      catelist: [],
+      /* 级联选择框的配置对象 */
+      cateProps: {
+        value: 'cat_id',
+        label: 'cat_name',
+        children: 'children'
+      },
+      selectedKeys: [],
+      activeName: 'many',
+      manyTableData: [],
+      onlyTableData: [],
+      addParamsDialogVisible: false,
+      addParamsForm: {
+        attr_name: ''
+      },
+      addParamsFormRules: {
+        attr_name: [
+          {required: true, message: '请输入动态参数名', trigger: 'blur'}
+        ]
+      }
+
+    }
+  },
+  created () {
+    this.getCateList()
+  },
+  computed: {
+    isBtnDisabled () {
+      return this.selectedKeys.length !== 3
+    },
+    /* 当前选中的三级分类的id */
+    cateId () {
+      if (this.selectedKeys.length === 3) {
+        return this.selectedKeys[2]
+      }
+      return null
+    },
+    titleText () {
+      if (this.activeName === 'many') {
+        return '动态参数'
+      }
+      return '静态属性'
+    }
+  },
+  methods: {
+    async getCateList () {
+      const {data: res} = await this.$http.get('categories')
+      if (res.meta.status !== 200) {
+        return this.$message.error('获取商品分类失败')
+      }
+      this.catelist = res.data
+    },
+    handleChange () {
+      this.getParamsData()
+    },
+    handleTabClick () {
+      this.getParamsData()
+    },
+    async getParamsData () {
+      if (this.selectedKeys.length !== 3) {
+        this.selectedKeys = []
+      }
+      /* 证明选中的是三级分类 */
+      const {data: res} = await this.$http.get(`categories/${this.cateId}/attributes`, {params: {sel: this.activeName}})
+      if (res.meta.status !== 200) {
+        return this.$message.error('获取参数列表失败')
+      }
+      if (this.activeName === 'many') {
+        this.manyTableData = res.data
+      } else {
+        this.onlyTableData = res.data
+      }
+    },
+    addParamsDialogClosed () {
+      this.$refs.addParamsFormRef.resetFields()
+    },
+    async addParams () {
+      this.$refs.addParamsFormRef.validate(async valid => {
+        if (!valid) return
+        const {data: res} = await this.$http.post(`categories/${this.cateId}/attributes`, {attr_name: this.addParamsForm.attr_name, attr_sel: this.activeName})
+        if (res.meta.status !== 201) {
+          return this.$message.error('添加参数失败')
+        }
+        this.$message.success('添加参数成功')
+        this.addParamsDialogVisible = false
+        await this.getParamsData()
+      })
+    }
+  }
+}
+</script>
+
+<style lang="less" scoped>
+.cat_row {
+    margin-top: 15px;
+}
+</style>
